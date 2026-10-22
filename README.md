@@ -1,6 +1,6 @@
-# Banking Management System — CS-513 System Software Mini Project
+# Banking Management System —  System Software Project
 
-IIIT Bangalore · Design and Development of Banking Management System
+Design and Development of Banking Management System
 
 A small client–server banking system written in C for Linux. A multithreaded TCP server (`server.c`) keeps the bank's data in plain text files. Text-menu clients (`client.c`) connect over TCP and log in as one of four roles: Customer, Employee, Manager or Administrator.
 
