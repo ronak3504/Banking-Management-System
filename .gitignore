@@ -1,0 +1,11 @@
+server
+client
+data/
+*.log
+*.tmp
+*.bak
+core
+core.*
+.vscode/
+.idea/
+.DS_store

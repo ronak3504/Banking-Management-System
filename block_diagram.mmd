@@ -1,0 +1,142 @@
+---
+title: Banking Management System - UML Class Diagram (logical entities of a C implementation)
+config:
+  layout: elk
+  elk:
+    mergeEdges: false
+    nodePlacementStrategy: NETWORK_SIMPLEX
+  themeVariables:
+    fontSize: 18px
+---
+classDiagram
+    direction TB
+
+    class Bank {
+        <<server process : server.c>>
+        -port : int = 8080
+        -client_slots : sem_t, MAX_CLIENTS = 10
+        -sessions : char[10][21]
+        -session_lock : pthread_mutex_t
+        -log_pipe_fd : int
+        +main(argc, argv) int
+        +client_thread(void *arg)
+        +handle_request(Client*, line, resp) void
+        +session_start(username) int
+        +session_end(username) void
+        +run_logger(read_fd) void
+    }
+
+    class User {
+        <<struct User : users.txt>>
+        +username : char[21]
+        +role : char[9]
+        +name : char[31]
+        +phone : char[16]
+        +hash : char[128]
+        +LOGIN(username, password)
+        +LOGOUT()
+        +PASSWD(old, new)
+    }
+
+    class Customer {
+        <<role = CUSTOMER>>
+        +BALANCE()
+        +DEPOSIT(amount)
+        +WITHDRAW(amount)
+        +TRANSFER(to_acc, amount)
+        +APPLY_LOAN(amount, purpose)
+        +FEEDBACK(text)
+        +HISTORY()
+    }
+
+    class Employee {
+        <<role = EMPLOYEE>>
+        +ADD_CUSTOMER(user, pass, name, phone, acc_type)
+        +MODIFY_CUSTOMER(user, name, phone)
+        +OPEN_ACCOUNT(user, acc_type)
+        +MODIFY_ACCOUNT(acc_no, acc_type)
+        +CLOSE_ACCOUNT(acc_no)
+        +LIST_ACCOUNTS()
+        +MY_LOANS()
+        +DECIDE_LOAN(loan_id, APPROVE|REJECT)
+        +PASSBOOK(acc_no)
+    }
+
+    class Manager {
+        <<role = MANAGER>>
+        +SET_STATUS(acc_no, ACTIVE|INACTIVE)
+        +LIST_ACCOUNTS()
+        +ALL_LOANS()
+        +ASSIGN_LOAN(loan_id, employee)
+        +VIEW_FEEDBACK()
+    }
+
+    class Admin {
+        <<role = ADMIN>>
+        +ADD_EMPLOYEE(user, pass, name, phone, role)
+        +MODIFY_USER(user, name, phone)
+        +SET_ROLE(user, EMPLOYEE|MANAGER)
+        +LIST_USERS()
+    }
+
+    class Account {
+        <<struct Account : accounts.txt>>
+        +acc_no : int, from 1001
+        +owner : char[21]
+        +type : char[9] SAVINGS|CURRENT
+        +balance : long long, paise
+        +status : char[9] ACTIVE|INACTIVE|CLOSED
+    }
+
+    class Loan {
+        <<struct Loan : loans.txt>>
+        +id : int
+        +owner : char[21]
+        +acc_no : int
+        +amount : long long, paise
+        +purpose : char[41]
+        +status : char[9] PENDING|ASSIGNED|APPROVED|REJECTED
+        +assigned : char[21], employee or "-"
+    }
+
+    class Transaction {
+        <<text record : transactions.txt>>
+        +timestamp : string
+        +acc_no : int
+        +type : OPENING|DEPOSIT|WITHDRAW|TRANSFER_IN|TRANSFER_OUT|LOAN_CREDIT
+        +amount : rupees
+        +balance_after : rupees
+        +details : string
+    }
+
+    class Feedback {
+        <<text record : feedback.txt>>
+        +timestamp : string
+        +username : char[21]
+        +text : string, 1-200 chars
+    }
+
+    User <|-- Customer : role
+    User <|-- Employee : role
+    User <|-- Manager : role
+    User <|-- Admin : role
+
+    Bank "1" o-- "1..*" User : stores
+    Bank "1" o-- "0..*" Account : stores
+    Bank "1" o-- "0..*" Loan : stores
+    Bank "1" o-- "0..*" Transaction : appends
+    Bank "1" o-- "0..*" Feedback : appends
+
+    Customer "1" -- "0..*" Account : owns (one open at a time)
+    Transaction "0..*" --* "1" Account : records
+    Customer "1" -- "0..*" Loan : applies for
+    Loan "0..*" --> "1" Account : credited to
+    Customer "1" -- "0..*" Feedback : submits
+
+    Employee "1" ..> "0..*" Account : opens / modifies / closes
+    Employee "0..1" -- "0..*" Loan : decides (assigned)
+    Manager "1" ..> "0..*" Loan : assigns
+    Manager "1" ..> "0..*" Account : activates / deactivates
+    Manager "1" ..> "0..*" Feedback : reviews
+    Employee "0..*" <.. "1" Admin : adds / modifies / sets role
+    Manager "0..*" <.. "1" Admin : adds / modifies / sets role
